@@ -33,6 +33,7 @@ async def async_setup_entry(hass, config, async_add_entities):
                          TimestampSensor(coordinator, data[vehicle], 'battery_status_last_updated', 'last_updated', 'mdi:clock-time-eleven-outline')]
         if Feature.BATTERY_STATUS in data[vehicle].features:
             entities.append(BatteryLevelSensor(coordinator, data[vehicle]))
+            entities.append(ChargingSpeedSensor(coordinator, data[vehicle]))
         if data[vehicle].charge_time_required_to_full[ChargingSpeed.NORMAL] is not None:
             entities += [ChargeTimeRequiredSensor(coordinator, data[vehicle], ChargingSpeed.NORMAL),
                          ChargeTimeRequiredSensor(coordinator, data[vehicle], ChargingSpeed.FAST)]
@@ -288,6 +289,24 @@ class ChargeTimeRequiredSensor(KamereonEntity, SensorEntity):
     def icon(self):
         """Icon of the sensor."""
         return "mdi:battery-clock"
+
+
+class ChargingSpeedSensor(KamereonEntity, SensorEntity):
+    _attr_translation_key = "charging_speed"
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = [speed.name.lower() for speed in ChargingSpeed]
+
+    @property
+    def native_value(self):
+        """Return the state."""
+        if self.vehicle.charging_speed is None:
+            return None
+        return self.vehicle.charging_speed.name.lower()
+
+    @property
+    def icon(self):
+        """Icon of the sensor."""
+        return "mdi:ev-station"
 
 
 class TimestampSensor(KamereonEntity, SensorEntity):

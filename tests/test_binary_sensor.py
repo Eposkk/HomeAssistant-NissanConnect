@@ -1,12 +1,13 @@
 import pytest
 from homeassistant.const import STATE_UNKNOWN
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
-from custom_components.nissan_connect.kamereon import ChargingStatus, PluggedStatus, LockStatus
+from custom_components.nissan_connect.kamereon import ChargingStatus, PluggedStatus, LockStatus, Door
 
 from custom_components.nissan_connect.binary_sensor import (
     ChargingStatusEntity,
     PluggedStatusEntity,
     LockStatusEntity,
+    DoorStatusEntity,
 )
 
 @pytest.fixture
@@ -20,6 +21,7 @@ def vehicle():
             self.plugged_in_time = None
             self.unplugged_time = None
             self.lock_status = None
+            self.door_status = {}
 
     return Vehicle()
 
@@ -58,4 +60,14 @@ async def test_lock_status_entity(vehicle, coordinator):
     assert entity.is_on is False
 
     vehicle.lock_status = LockStatus.UNLOCKED
+    assert entity.is_on is True
+
+async def test_door_status_entity(vehicle, coordinator):
+    entity = DoorStatusEntity(coordinator, vehicle, Door.FRONT_LEFT)
+    assert entity.is_on == STATE_UNKNOWN
+
+    vehicle.door_status = {Door.FRONT_LEFT: LockStatus.CLOSED}
+    assert entity.is_on is False
+
+    vehicle.door_status = {Door.FRONT_LEFT: LockStatus.OPEN}
     assert entity.is_on is True

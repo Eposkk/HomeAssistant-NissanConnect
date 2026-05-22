@@ -13,6 +13,7 @@ from custom_components.nissan_connect.sensor import (
     StatisticSensor,
     ChargeTimeRequiredSensor,
     TimestampSensor,
+    ChargingSpeedSensor,
     async_setup_entry
 )
 
@@ -55,6 +56,7 @@ async def test_async_setup_entry(mock_hass, mock_config, mock_async_add_entities
     assert mock_async_add_entities.call_count == 1
     entities = mock_async_add_entities.call_args[0][0]
     assert len(entities) > 0
+    assert any(isinstance(e, ChargingSpeedSensor) for e in entities)
 
 def test_battery_level_sensor(mock_hass):
     vehicle = mock_hass.data['nissan_connect']['test_account']['vehicles']['test_vehicle']
@@ -98,3 +100,15 @@ def test_timestamp_sensor(mock_hass):
     vehicle = mock_hass.data['nissan_connect']['test_account']['vehicles']['test_vehicle']
     coordinator = mock_hass.data['nissan_connect']['test_account']['coordinator_fetch']
     sensor = TimestampSensor(coordinator, vehicle, 'battery_status_last_updated', 'last_updated', 'mdi:clock-time-eleven-outline')
+
+def test_charging_speed_sensor(mock_hass):
+    coordinator = mock_hass.data['nissan_connect']['test_account']['coordinator_fetch']
+    vehicle = MagicMock(charging_speed=ChargingSpeed.FAST)
+    sensor = ChargingSpeedSensor(coordinator, vehicle)
+    assert sensor.native_value == 'fast'
+
+    vehicle.charging_speed = ChargingSpeed.NONE
+    assert sensor.native_value == 'none'
+
+    vehicle.charging_speed = None
+    assert sensor.native_value is None

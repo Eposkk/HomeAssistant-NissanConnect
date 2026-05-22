@@ -3,7 +3,7 @@ from homeassistant.components.binary_sensor import BinarySensorEntity, BinarySen
 from homeassistant.const import STATE_UNKNOWN
 
 from .base import KamereonEntity
-from .kamereon import ChargingStatus, PluggedStatus, LockStatus, Feature
+from .kamereon import ChargingStatus, PluggedStatus, LockStatus, Door, Feature
 from .const import DOMAIN, DATA_VEHICLES, DATA_COORDINATOR_FETCH
 
 async def async_setup_entry(hass, config, async_add_entities):
@@ -21,6 +21,7 @@ async def async_setup_entry(hass, config, async_add_entities):
                          PluggedStatusEntity(coordinator, data[vehicle])]
         if Feature.LOCK_STATUS_CHECK in data[vehicle].features:
             entities += [LockStatusEntity(coordinator, data[vehicle])]
+            entities += [DoorStatusEntity(coordinator, data[vehicle], door) for door in Door]
 
     async_add_entities(entities, update_before_add=True)
 
@@ -92,3 +93,26 @@ class LockStatusEntity(KamereonEntity, BinarySensorEntity):
     @property
     def is_on(self):
         return self.vehicle.lock_status == LockStatus.UNLOCKED
+
+
+class DoorStatusEntity(KamereonEntity, BinarySensorEntity):
+    """Representation of a single door's open/closed status."""
+    _attr_device_class = BinarySensorDeviceClass.DOOR
+
+    def __init__(self, coordinator, vehicle, door):
+        self.door = door
+        self._attr_translation_key = "door_" + door.value
+        KamereonEntity.__init__(self, coordinator, vehicle)
+
+    @property
+    def icon(self):
+        """Return the icon."""
+        return 'mdi:car-door'
+
+    @property
+    def is_on(self):
+        """Return True if the door is open."""
+        status = self.vehicle.door_status.get(self.door)
+        if status is None:
+            return STATE_UNKNOWN
+        return status == LockStatus.OPEN

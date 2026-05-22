@@ -62,6 +62,21 @@
         },
         "plugged": {
           "name": "Plugged In"
+        },
+        "door_front_left": {
+          "name": "Front Left Door"
+        },
+        "door_front_right": {
+          "name": "Front Right Door"
+        },
+        "door_rear_left": {
+          "name": "Rear Left Door"
+        },
+        "door_rear_right": {
+          "name": "Rear Right Door"
+        },
+        "door_hatch": {
+          "name": "Tailgate"
         }
       },
       "button": {
@@ -136,6 +151,17 @@
         },
         "monthly_trips": {
           "name": "Monthly Trips"
+        },
+        "charging_speed": {
+          "name": "Charging Speed",
+          "state": {
+            "none": "Not charging",
+            "slow": "Slow",
+            "normal": "Normal",
+            "fast": "Fast",
+            "fastest": "Fastest",
+            "adaptive": "Adaptive"
+          }
         }
       }
     },
