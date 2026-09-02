@@ -161,6 +161,25 @@
         "monthly_trips": {
           "name": "Monthly Trips"
         },
+        "tyre_pressure_front_left": {
+          "name": "Front Left Tyre Pressure"
+        },
+        "tyre_pressure_front_right": {
+          "name": "Front Right Tyre Pressure"
+        },
+        "tyre_pressure_rear_left": {
+          "name": "Rear Left Tyre Pressure"
+        },
+        "tyre_pressure_rear_right": {
+          "name": "Rear Right Tyre Pressure"
+        },
+        "charge_mode": {
+          "name": "Charge Mode",
+          "state": {
+            "always": "Always",
+            "scheduled": "Scheduled"
+          }
+        },
         "charging_speed": {
           "name": "Charging Speed",
           "state": {

@@ -44,6 +44,14 @@ class KamereonDeviceTracker(KamereonEntity, TrackerEntity):
         return self.vehicle.location[1]
 
     @property
+    def extra_state_attributes(self):
+        """GPS heading in degrees, when the car reports one."""
+        direction = self.vehicle.location_direction
+        if direction is None:
+            return {}
+        return {'direction': direction}
+
+    @property
     def source_type(self):
         """Return the source type, eg gps or router, of the device."""
         return SourceType.GPS

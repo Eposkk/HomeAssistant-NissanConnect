@@ -40,3 +40,11 @@ def test_kamereon_device_tracker_properties(mock_vehicle, mock_coordinator):
     assert tracker.latitude == 12.34
     assert tracker.longitude == 56.78
     assert tracker.source_type == SourceType.GPS
+
+def test_kamereon_device_tracker_exposes_heading(mock_coordinator):
+    tracker = KamereonDeviceTracker(mock_coordinator, MagicMock(location=(1.0, 2.0), location_direction=288.0))
+    assert tracker.extra_state_attributes == {'direction': 288.0}
+
+def test_kamereon_device_tracker_without_heading(mock_coordinator):
+    tracker = KamereonDeviceTracker(mock_coordinator, MagicMock(location=(1.0, 2.0), location_direction=None))
+    assert tracker.extra_state_attributes == {}

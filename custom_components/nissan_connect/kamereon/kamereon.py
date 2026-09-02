@@ -494,7 +494,13 @@ class Vehicle:
         self.unplugged_time = None
         self.battery_status_last_updated = None
         self.location = None
+        self.location_direction = None
         self.location_last_updated = None
+        self.tyre_pressure = {}
+        self.tyre_status = {}
+        self._pressure_supported = True
+        self.charge_mode = None
+        self._charge_mode_supported = True
         self.combustion_fuel_unit_cost = None
         self.electricity_unit_cost = None
         self.external_temperature = None
@@ -570,6 +576,8 @@ class Vehicle:
         self.fetch_battery_status()
         self.fetch_hvac_status()
         self.fetch_lock_status()
+        self.fetch_pressure()
+        self.fetch_charge_mode()
 
     def refresh_location(self):
         if Feature.MY_CAR_FINDER not in self.features:
@@ -600,6 +608,7 @@ class Vehicle:
             raise ValueError(body['errors'])
         location_data = body['data']['attributes']
         self.location = (location_data['gpsLatitude'], location_data['gpsLongitude'])
+        self.location_direction = location_data.get('gpsDirection')
         self.location_last_updated = datetime.datetime.fromisoformat(location_data['lastUpdateTime'].replace('Z','+00:00'))
 
     def refresh_lock_status(self):
@@ -1076,6 +1085,55 @@ class Vehicle:
         self.fuel_quantity = cockpit_data.get('fuelQuantity')  # litres
         self.mileage = cockpit_data.get('mileage')
         self.total_mileage = cockpit_data.get('totalMileage')
+
+    def _fetch_optional_attributes(self, endpoint):
+        """GET a car-adapter resource that not every car supports.
+
+        Returns the attributes dict, or None when the car does not expose the
+        resource (403/501/error body). Never raises for that case, so a missing
+        resource cannot break the rest of fetch_all.
+        """
+        resp = self._get(
+            '{}v1/cars/{}/{}'.format(self.session.settings['car_adapter_base_url'], self.vin, endpoint),
+            headers={'Content-Type': 'application/vnd.api+json'}
+        )
+        try:
+            body = resp.json()
+        except ValueError:
+            body = {}
+        if not resp.ok or 'errors' in body or 'attributes' not in body.get('data', {}):
+            _LOGGER.debug("%s not available for %s: HTTP %s", endpoint, self.vin, resp.status_code)
+            return None
+        return body['data']['attributes']
+
+    def fetch_pressure(self):
+        if not self._pressure_supported:
+            return
+        attributes = self._fetch_optional_attributes('pressure')
+        if attributes is None:
+            self._pressure_supported = False
+            return
+        self.tyre_pressure = {
+            Tyre.FRONT_LEFT: attributes.get('flPressure'),
+            Tyre.FRONT_RIGHT: attributes.get('frPressure'),
+            Tyre.REAR_LEFT: attributes.get('rlPressure'),
+            Tyre.REAR_RIGHT: attributes.get('rrPressure'),
+        }
+        self.tyre_status = {
+            Tyre.FRONT_LEFT: attributes.get('flStatus'),
+            Tyre.FRONT_RIGHT: attributes.get('frStatus'),
+            Tyre.REAR_LEFT: attributes.get('rlStatus'),
+            Tyre.REAR_RIGHT: attributes.get('rrStatus'),
+        }
+
+    def fetch_charge_mode(self):
+        if not self._charge_mode_supported or Feature.BATTERY_STATUS not in self.features:
+            return
+        attributes = self._fetch_optional_attributes('charge-mode')
+        if attributes is None:
+            self._charge_mode_supported = False
+            return
+        self.charge_mode = attributes.get('chargeMode')
 
 
 class TripSummary:

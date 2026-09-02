@@ -41,11 +41,9 @@ from kamereon import NCISession  # noqa: E402
 # Kamereon car-adapter resources documented by renault-api (hacf-fr) but not
 # used by the bundled library. A 200 here means a viable new data source.
 CANDIDATE_ENDPOINTS = [
-    'pressure',              # tyre pressure, 4 wheels
     'res-state',             # vehicle state code
     'charge-history',
     'charges',
-    'charge-mode',
     'charging-settings',
     'hvac-settings',
     'hvac-history',
@@ -126,7 +124,8 @@ def main():
         # so the physical car is never nudged. Each is wrapped individually so
         # one unsupported endpoint does not hide the rest.
         for fetch in (v.fetch_cockpit, v.fetch_location, v.fetch_battery_status,
-                      v.fetch_hvac_status, v.fetch_lock_status):
+                      v.fetch_hvac_status, v.fetch_lock_status, v.fetch_pressure,
+                      v.fetch_charge_mode):
             try:
                 fetch()
             except Exception as exc:

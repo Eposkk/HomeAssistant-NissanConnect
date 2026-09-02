@@ -7,10 +7,10 @@ from homeassistant.components.sensor import (
     UnitOfTemperature
 )
 from homeassistant.core import callback
-from homeassistant.const import PERCENTAGE, UnitOfLength, UnitOfTime
+from homeassistant.const import PERCENTAGE, UnitOfLength, UnitOfTime, UnitOfPressure
 from homeassistant.components.sensor import SensorStateClass
 from .base import KamereonEntity
-from .kamereon import ChargingSpeed, Feature
+from .kamereon import ChargingSpeed, Feature, Tyre
 from .const import DOMAIN, DATA_VEHICLES, DATA_COORDINATOR_FETCH, DATA_COORDINATOR_STATISTICS
 _LOGGER = logging.getLogger(__name__)
 
@@ -46,6 +46,12 @@ async def async_setup_entry(hass, config, async_add_entities):
             entities.append(InternalTemperatureSensor(coordinator, data[vehicle]))
         if data[vehicle].external_temperature is not None:
             entities.append(ExternalTemperatureSensor(coordinator, data[vehicle]))
+        # Not every car exposes tyre pressure or charge mode; the library leaves
+        # these empty when the endpoint is unavailable, so gate on the data.
+        if data[vehicle].tyre_pressure:
+            entities += [TyrePressureSensor(coordinator, data[vehicle], tyre) for tyre in Tyre]
+        if data[vehicle].charge_mode is not None:
+            entities.append(ChargeModeSensor(coordinator, data[vehicle]))
         if Feature.DRIVING_JOURNEY_HISTORY in data[vehicle].features:
             entities += [
                 StatisticSensor(coordinator_stats, data[vehicle], 'daily', lambda x: x.total_distance, 'daily_distance', 'mdi:map-marker-distance', SensorDeviceClass.DISTANCE, UnitOfLength.KILOMETERS, 0, imperial_distance),
@@ -314,6 +320,58 @@ class ChargingSpeedSensor(KamereonEntity, SensorEntity):
     def icon(self):
         """Icon of the sensor."""
         return "mdi:ev-station"
+
+
+class TyrePressureSensor(KamereonEntity, SensorEntity):
+    _attr_device_class = SensorDeviceClass.PRESSURE
+    _attr_native_unit_of_measurement = UnitOfPressure.MBAR
+    _attr_suggested_unit_of_measurement = UnitOfPressure.BAR
+    _attr_suggested_display_precision = 2
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    def __init__(self, coordinator, vehicle, tyre):
+        self.tyre = tyre
+        self._attr_translation_key = "tyre_pressure_" + tyre.value
+        KamereonEntity.__init__(self, coordinator, vehicle)
+
+    @property
+    def native_value(self):
+        """Return the state."""
+        return self.vehicle.tyre_pressure.get(self.tyre)
+
+    @property
+    def extra_state_attributes(self):
+        """Raw per-tyre status flag from the API (0 observed as normal)."""
+        return {'status': self.vehicle.tyre_status.get(self.tyre)}
+
+    @property
+    def icon(self):
+        """Icon of the sensor."""
+        return "mdi:car-tire-alert"
+
+
+class ChargeModeSensor(KamereonEntity, SensorEntity):
+    _attr_translation_key = "charge_mode"
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = ["always", "scheduled"]
+
+    # Kamereon (shared with Renault) reports a few spellings per mode
+    CHARGE_MODES = {
+        'always': 'always',
+        'always_charging': 'always',
+        'schedule_mode': 'scheduled',
+        'scheduled': 'scheduled',
+    }
+
+    @property
+    def native_value(self):
+        """Return the state, or None for a mode we do not know."""
+        return self.CHARGE_MODES.get(self.vehicle.charge_mode)
+
+    @property
+    def icon(self):
+        """Icon of the sensor."""
+        return "mdi:calendar-clock"
 
 
 class TimestampSensor(KamereonEntity, SensorEntity):

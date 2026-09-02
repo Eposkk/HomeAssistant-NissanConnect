@@ -52,6 +52,13 @@ class Door(enum.Enum):
     REAR_RIGHT = 'rear_right'
 
 
+class Tyre(enum.Enum):
+    FRONT_LEFT = 'front_left'
+    FRONT_RIGHT = 'front_right'
+    REAR_LEFT = 'rear_left'
+    REAR_RIGHT = 'rear_right'
+
+
 class LockableDoorGroup(enum.Enum):
     DOORS_AND_HATCH = 'doors_hatch'
     DRIVERS_DOOR = 'driver_s_door'
